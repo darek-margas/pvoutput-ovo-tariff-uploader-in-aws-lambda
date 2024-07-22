@@ -39,23 +39,24 @@ def lambda_handler(event, context):
         return yaml.safe_load(file)
 
   def get_current_tariff(tariff_config, public_holidays, current_datetime):
-    # set offpeak as a fallback if no other tariff matches
     offpeak = tariff_config.pop('offpeak', None)
-    # go through the remaining tariffs
     for _, tariff in tariff_config.items():
         periods = tariff.get('times', [])
-        # check if current time matches any tariff
         if any(is_time_in_period(current_datetime.time(), period['start'], period['end']) for period in periods):
-            # if our tariff isn't seasonal, then we've found our tariff
-            # as we have passed our seasonal tariffs already
             if 'start_date' not in tariff and 'end_date' not in tariff:
                 return tariff['price']
             else:
-                weekdays_only = tariff.get('weekdays_only', False)
                 is_weekday = (current_datetime.weekday() < 5)
+                is_weekend = (current_datetime.weekday() >= 5)
                 is_holiday = is_public_holiday(public_holidays, current_datetime.date())
-                if not is_holiday and (weekdays_only and is_weekday or not weekdays_only):
-                    # if we are in the range of the start and end date then we found our tariff
+                weekdays_only = tariff.get('weekdays_only', False)
+                weekends_only = tariff.get('weekends_only', False)
+
+                if not is_holiday and (
+                    (weekdays_only and is_weekday) or 
+                    (weekends_only and is_weekend) or 
+                    (not weekdays_only and not weekends_only)
+                ):
                     if tariff['start_date'] <= current_datetime.date() <= tariff['end_date']:
                         return tariff['price']
 
