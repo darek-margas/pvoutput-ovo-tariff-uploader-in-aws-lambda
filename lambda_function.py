@@ -62,7 +62,7 @@ def lambda_handler(event, context):
 
     return offpeak['price']
 
-  def send_price_to_pvoutput(api_key, system_id, import_param, price, now):
+  def send_price_to_pvoutput(api_key, system_id, import_param, export_param, price, export_t, now):
     date_str = now.strftime('%Y%m%d')
     # pvoutput expects a data feed sent to an extended parameter every 5 minutes
     # e.g. 00, 05, 10, ..., 55
@@ -75,7 +75,7 @@ def lambda_handler(event, context):
         'X-Pvoutput-SystemId': system_id,
         'Content-Type': 'application/x-www-form-urlencoded'
     }
-    data = f"{import_param}={price}&d={date_str}&t={time_str}"
+    data = f"{import_param}={price}&{export_param}={export_t}&d={date_str}&t={time_str}"
     response = requests.post(url, headers=headers, data=data)
     return response
 
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
     config = load_config(config_path)
     current_datetime = datetime.now(dateutil.tz.gettz(timezone))
     current_tariff = get_current_tariff(config.get('tariffs'), config.get('public_holidays'), current_datetime)
-    response = send_price_to_pvoutput(api_key, system_id, config['pvoutput']['import_param'], current_tariff, current_datetime)
+    response = send_price_to_pvoutput(api_key, system_id, config['pvoutput']['import_param'], config['pvoutput']['export_param'], current_tariff, event['export_tariff'], current_datetime)
     print(f"Sent tariff {current_tariff}c to PVOutput. Response: {response.status_code} - {response.text} at {current_datetime}")
        
     return response.status_code
