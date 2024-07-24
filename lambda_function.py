@@ -13,8 +13,6 @@ def lambda_handler(event, context):
   timezone = event['timezone']                  # JSON from event
   api_key = event['api_key']
   system_id = event['system_id']
-  if 'export_tariff' in event:
-     export_tariff = event['export_tariff']     # This one is optional
 
   # Helper function to check if current time is within a specified period
   def is_time_in_period(current_time, start_str, end_str):
@@ -61,6 +59,31 @@ def lambda_handler(event, context):
                         return tariff['price']
 
     return offpeak['price']
+    
+  def get_current_export_tariff(export_tariff_config, public_holidays, current_datetime):
+    offpeak = export_tariff_config.pop('offpeak', None)
+    for tariff_name, tariff in export_tariff_config.items():
+        periods = tariff.get('times', [])
+        if any(is_time_in_period(current_datetime.time(), period['start'], period['end']) for period in periods):
+            if 'start_date' not in tariff and 'end_date' not in tariff:
+                return tariff['price']
+            else:
+                is_weekday = (current_datetime.weekday() < 5)
+                is_weekend = (current_datetime.weekday() >= 5)
+                is_holiday = is_public_holiday(public_holidays, current_datetime.date())
+                weekdays_only = tariff.get('weekdays_only', False)
+                weekends_only = tariff.get('weekends_only', False)
+                if not is_holiday and (
+                    (weekdays_only and is_weekday) or 
+                    (weekends_only and is_weekend) or 
+                    (not weekdays_only and not weekends_only)
+                ):
+                    if 'start_date' in tariff and 'end_date' in tariff:
+                        if tariff['start_date'] <= current_datetime.date() <= tariff['end_date']:
+                            return tariff['price']
+                    else:
+                        return tariff['price']
+    return offpeak['price']
 
   def send_price_to_pvoutput(api_key, system_id, import_param, export_param, price, export_t, now):
     date_str = now.strftime('%Y%m%d')
@@ -82,9 +105,10 @@ def lambda_handler(event, context):
   def main():
     config = load_config(config_path)
     current_datetime = datetime.now(dateutil.tz.gettz(timezone))
-    current_tariff = get_current_tariff(config.get('tariffs'), config.get('public_holidays'), current_datetime)
-    response = send_price_to_pvoutput(api_key, system_id, config['pvoutput']['import_param'], config['pvoutput']['export_param'], current_tariff, event['export_tariff'], current_datetime)
-    print(f"Sent tariff {current_tariff}c to PVOutput. Response: {response.status_code} - {response.text} at {current_datetime}")
+    current_import_tariff = get_current_tariff(config.get('tariffs'), config.get('public_holidays'), current_datetime)
+    current_export_tariff = get_current_export_tariff(config.get('export_tariffs'), config.get('public_holidays'), current_datetime)
+    response = send_price_to_pvoutput(api_key, system_id, config['pvoutput']['import_param'], config['pvoutput']['export_param'], current_import_tariff, current_export_tariff, current_datetime)
+    print(f"Sent import tariff {current_import_tariff}c and export tariff {current_export_tariff}c to PVOutput. Response: {response.status_code} - {response.text} at {current_datetime}")
        
     return response.status_code
 
