@@ -13,6 +13,8 @@ def lambda_handler(event, context):
   timezone = event['timezone']                  # JSON from event
   api_key = event['api_key']
   system_id = event['system_id']
+  #if 'export_tariff' in event:
+     #export_tariff = event['export_tariff']     # This one is optional
 
   # Helper function to check if current time is within a specified period
   def is_time_in_period(current_time, start_str, end_str):
@@ -49,8 +51,9 @@ def lambda_handler(event, context):
                 is_holiday = is_public_holiday(public_holidays, current_datetime.date())
                 weekdays_only = tariff.get('weekdays_only', False)
                 weekends_only = tariff.get('weekends_only', False)
+                consider_holidays = tariff.get('consider_holidays', True)
 
-                if not is_holiday and (
+                if (not is_holiday or not consider_holidays) and (
                     (weekdays_only and is_weekday) or 
                     (weekends_only and is_weekend) or 
                     (not weekdays_only and not weekends_only)
@@ -59,7 +62,7 @@ def lambda_handler(event, context):
                         return tariff['price']
 
     return offpeak['price']
-    
+
   def get_current_export_tariff(export_tariff_config, public_holidays, current_datetime):
     offpeak = export_tariff_config.pop('offpeak', None)
     for tariff_name, tariff in export_tariff_config.items():
@@ -73,7 +76,9 @@ def lambda_handler(event, context):
                 is_holiday = is_public_holiday(public_holidays, current_datetime.date())
                 weekdays_only = tariff.get('weekdays_only', False)
                 weekends_only = tariff.get('weekends_only', False)
-                if not is_holiday and (
+                consider_holidays = tariff.get('consider_holidays', True)
+                
+                if (not is_holiday or not consider_holidays) and (
                     (weekdays_only and is_weekday) or 
                     (weekends_only and is_weekend) or 
                     (not weekdays_only and not weekends_only)
