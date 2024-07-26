@@ -25,6 +25,7 @@ tariffs:
     start_date: 2023-11-01
     end_date: 2024-03-31
     weekdays_only: true
+    consider_holidays: true
     times:
       - start: '14:00'
         end: '20:00'
