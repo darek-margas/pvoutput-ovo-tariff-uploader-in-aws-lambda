@@ -1,6 +1,10 @@
 # AWS Lambda OVO tariff to PVOutput uploader
 
-Uploads the current import and export tariff to PVOutput extended parameters.
+Turn a simple YAML configuration into complex time-of-use electricity tariff logic and automatically publish the current import and export prices to PVOutput extended parameters.
+
+This is useful when PVOutput's built-in tariff configuration is not flexible enough for real-world plans with overlapping time periods, seasonal rates, weekday/weekend rules, public holidays, free-energy windows, EV rates, changing feed-in tariffs, or date-limited special offers. Define the rules once in `config.yaml`; the Lambda works out which tariff applies now and sends the resolved values to PVOutput every few minutes.
+
+Inspired by Adam Petrovic's `pvoutput-tariff` project, adapted for a lightweight AWS Lambda deployment and separate import/export tariff calculation.
 
 ## Python 3.13
 
