@@ -1,21 +1,39 @@
-# This is AWS Lambda-packed OVO to PVO uploader
-To run ich cheap in te cloud, AWS Lambda seems best fit (to me at least).
+# AWS Lambda OVO tariff to PVOutput uploader
 
-So, here it is. 
-I was inspired by Adam Petrovic and his script idea.
-(https://github.com/adampetrovic/pvoutput-tariff)
+Uploads the current import and export tariff to PVOutput extended parameters.
 
-To have it running in Lambda, two files and layers pack have to be installed.
+## Python 3.13
 
-Don't forget the below to work requires donation for PVO and extended atributes setup. Do it first, certainly before testing. Use "last" in parameters.
+This repository is now set up for AWS Lambda Python 3.13.
 
-Quick install:
-- Create custom empty Lambda in AWS Lambda console
-- Go to "code" and upload lambda_function.py and config.yaml to the code directory
-- Modify config.yaml to match your tariff and extended attribute. For now only import works so ignore export setting
-- Go to Layers in Lambda console and upload layers pvo-layers.zip file while creating new custom layer
-- Now go back to function/code and down the bottom add custom layer from what you just made
-- Make sure you "re-deploy" it now
-- Create custom json test from sample file by adding your key and id
-- Test if it works. Quickest probably from US east coast.
-- If it works, create cron scheduler for your new function using json event you just tested with. Should be every 5 minutes.
+The dependency layer is rebuilt from source with:
+
+- requests
+- holidays
+- python-dateutil
+- PyYAML
+
+No API keys, passwords, tokens, or production event values are stored in the repository.
+
+## Configuration
+
+The Lambda receives private values in the invocation event:
+
+```json
+{
+  "timezone": "Australia/Sydney",
+  "api_key": "your PVOutput API key",
+  "system_id": "your PVOutput system id"
+}
+```
+
+Tariff periods and PVOutput extended parameter numbers stay in `config.yaml`.
+
+## Release
+
+The current runtime release is `py3.13`.
+
+Changing `VERSION` rebuilds:
+
+- `UploaderModules-py3.13.zip` - Lambda layer
+- `UploadTariff2PVO-py3.13.zip` - function package
