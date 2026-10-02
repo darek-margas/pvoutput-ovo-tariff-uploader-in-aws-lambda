@@ -1,3 +1,4 @@
+# Python 3.13 Lambda. Runtime dependencies are supplied by the UploaderModules layer.
 import json
 def lambda_handler(event, context):
 
